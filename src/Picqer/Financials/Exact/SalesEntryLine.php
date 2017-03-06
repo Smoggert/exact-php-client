@@ -29,6 +29,7 @@ class SalesEntryLine extends Model
     protected $fillable = [
         'AmountDC',
         'AmountFC',
+        'CostCenter',
         'Description',
         'Division',
         'ID',
