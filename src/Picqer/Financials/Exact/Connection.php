@@ -166,6 +166,9 @@ class Connection
         if (!$this->needsAuthentication() && !empty($this->accessToken)) {
             $headers['Authorization'] = 'Bearer ' . $this->accessToken;
         }
+        //if($method = 'POST') {
+            $headers['Prefer'] = "return=representation.";
+        //}
 
         // Create param string
         if (!empty($params)) {
