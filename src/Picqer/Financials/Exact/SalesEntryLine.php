@@ -40,6 +40,7 @@ class SalesEntryLine extends Model
         'Quantity',
         'VATCode',
         'VATPercentage',
+        'VATAmountFC',
         'Notes',
     ];
 
