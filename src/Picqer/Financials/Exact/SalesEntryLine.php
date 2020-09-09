@@ -42,6 +42,8 @@ class SalesEntryLine extends Model
         'VATPercentage',
         'VATAmountFC',
         'Notes',
+        'From',
+        'To'
     ];
 
     protected $url = 'salesentry/SalesEntryLines';
