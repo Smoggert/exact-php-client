@@ -138,7 +138,7 @@ class Connection
     {
         if($this->exactClientId === 'lobbi')
         {
-            $this->accessToken = $this->syncLobbi->getExactToken();
+            $this->accessToken = $this->syncLobbi->getExactToken()['access_token'];
         } else {
                     // Redirect for authorization if needed (no access token or refresh token given)
             if ($this->needsAuthentication()) {
