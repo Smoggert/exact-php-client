@@ -96,7 +96,12 @@ class Connection
     * @var
     */
     public $nextUrl = null;
-
+    
+    /**
+    * @SyncLobbi
+    */
+    protected $syncLobbi;
+    
     /**
      * @return Client
      */
@@ -118,6 +123,11 @@ class Connection
 
         return $this->client;
     }
+    
+    public function setLobbi($lobbi)
+    {
+        $this->syncLobbi = $lobbi;
+    }
 
     public function insertMiddleWare($middleWare)
     {
@@ -126,19 +136,25 @@ class Connection
 
     public function connect()
     {
-        // Redirect for authorization if needed (no access token or refresh token given)
-        if ($this->needsAuthentication()) {
-            $this->redirectForAuthorization();
+        if($this->exactClientId === 'lobbi')
+        {
+            $this->accessToken = $this->syncLobbi->getExactToken();
+        } else {
+                    // Redirect for authorization if needed (no access token or refresh token given)
+            if ($this->needsAuthentication()) {
+                $this->redirectForAuthorization();
+            }
+
+            // If access token is not set or token has expired, acquire new token
+            if (empty($this->accessToken) || $this->tokenHasExpired()) {
+                $this->acquireAccessToken();
+            }
+
+            $client = $this->client();
+
+            return $client;
         }
 
-        // If access token is not set or token has expired, acquire new token
-        if (empty($this->accessToken) || $this->tokenHasExpired()) {
-            $this->acquireAccessToken();
-        }
-
-        $client = $this->client();
-
-        return $client;
     }
 
     /**
