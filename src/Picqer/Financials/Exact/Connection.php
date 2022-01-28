@@ -98,7 +98,7 @@ class Connection
     public $nextUrl = null;
     
     /**
-    * @SyncLobbi
+    * @var SyncLobbi
     */
     protected $syncLobbi;
     
