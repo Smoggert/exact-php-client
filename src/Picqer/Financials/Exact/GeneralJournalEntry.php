@@ -38,6 +38,7 @@ class GeneralJournalEntry extends Model
         'GeneralJournalEntryLines',
         'JournalCode',
         'Reversal',
+        'Description',
     ];
 
     protected $url = 'generaljournalentry/GeneralJournalEntries';
