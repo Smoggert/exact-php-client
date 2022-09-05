@@ -96,7 +96,12 @@ class Connection
     * @var
     */
     public $nextUrl = null;
-
+    
+    /**
+    * @var SyncLobbi
+    */
+    protected $syncLobbi;
+    
     /**
      * @return Client
      */
@@ -118,6 +123,11 @@ class Connection
 
         return $this->client;
     }
+    
+    public function setLobbi($lobbi)
+    {
+        $this->syncLobbi = $lobbi;
+    }
 
     public function insertMiddleWare($middleWare)
     {
@@ -126,19 +136,25 @@ class Connection
 
     public function connect()
     {
-        // Redirect for authorization if needed (no access token or refresh token given)
-        if ($this->needsAuthentication()) {
-            $this->redirectForAuthorization();
-        }
-
-        // If access token is not set or token has expired, acquire new token
-        if (empty($this->accessToken) || $this->tokenHasExpired()) {
+        if($this->exactClientId === 'lobbi')
+        {
             $this->acquireAccessToken();
+        } else {
+                    // Redirect for authorization if needed (no access token or refresh token given)
+            if ($this->needsAuthentication()) {
+                $this->redirectForAuthorization();
+            }
+
+            // If access token is not set or token has expired, acquire new token
+            if (empty($this->accessToken) || $this->tokenHasExpired()) {
+                $this->acquireAccessToken();
+            }
+
+            $client = $this->client();
+
+            return $client;
         }
 
-        $client = $this->client();
-
-        return $client;
     }
 
     /**
@@ -411,7 +427,13 @@ class Connection
     private function acquireAccessToken()
     {
         // If refresh token not yet acquired, do token request
-        if (empty($this->refreshToken)) {
+        if($this->exactClientId === 'lobbi') {
+            $exact_info = $this->syncLobbi->getExactToken();
+            $this->accessToken = $exact_info['access_token'];
+            $this->baseUrl = $exact_info['base_url'];
+            $this->tokenExpires = $exact_info['expires_on'];
+        } else {
+            if (empty($this->refreshToken)) {
             $body = [
                 'form_params' => [
                     'redirect_uri' => $this->redirectUrl,
@@ -419,38 +441,37 @@ class Connection
                     'client_id' => $this->exactClientId,
                     'client_secret' => $this->exactClientSecret,
                     'code' => $this->authorizationCode
-                ]
-            ];
-        } else { // else do refresh token request
-            $body = [
-                'form_params' => [
-                    'refresh_token' => $this->refreshToken,
-                    'grant_type' => 'refresh_token',
-                    'client_id' => $this->exactClientId,
-                    'client_secret' => $this->exactClientSecret,
-                ]
-            ];
-        }
+                    ]
+                ];
+            } else { // else do refresh token request
+                $body = [
+                    'form_params' => [
+                        'refresh_token' => $this->refreshToken,
+                        'grant_type' => 'refresh_token',
+                        'client_id' => $this->exactClientId,
+                        'client_secret' => $this->exactClientSecret,
+                        ]
+                    ];
+           }
+            $response = $this->client()->post($this->getTokenUrl(), $body);
+            if ($response->getStatusCode() == 200) {
+                Psr7\rewind_body($response);
+                $body = json_decode($response->getBody()->getContents(), true);
 
-        $response = $this->client()->post($this->getTokenUrl(), $body);
-
-        if ($response->getStatusCode() == 200) {
-            Psr7\rewind_body($response);
-            $body = json_decode($response->getBody()->getContents(), true);
-
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $this->accessToken  = $body['access_token'];
-                $this->refreshToken = $body['refresh_token'];
-                $this->tokenExpires = $this->getDateTimeFromExpires($body['expires_in']);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $this->accessToken  = $body['access_token'];
+                    $this->refreshToken = $body['refresh_token'];
+                    $this->tokenExpires = $this->getDateTimeFromExpires($body['expires_in']);
                 
-                if (is_callable($this->tokenUpdateCallback)) {
-                    call_user_func($this->tokenUpdateCallback, $this);                    
+                    if (is_callable($this->tokenUpdateCallback)) {
+                        call_user_func($this->tokenUpdateCallback, $this);                    
+                    }
+                } else {
+                    throw new ApiException('Could not acquire tokens, json decode failed. Got response: ' . $response->getBody()->getContents());
                 }
             } else {
-                throw new ApiException('Could not acquire tokens, json decode failed. Got response: ' . $response->getBody()->getContents());
+                throw new ApiException('Could not acquire or refresh tokens');
             }
-        } else {
-            throw new ApiException('Could not acquire or refresh tokens');
         }
     }
 
