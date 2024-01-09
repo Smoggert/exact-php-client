@@ -584,7 +584,7 @@ class Connection
     /**
      * @return string
      */
-    protected function getBaseUrl()
+    public function getBaseUrl()
     {
         return $this->baseUrl;
     }
